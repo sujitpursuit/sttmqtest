@@ -1,0 +1,141 @@
+
+
+**Context:** 
+You are building a tool to analyze the impact of Source-to-Target Mapping (STTM) document changes on existing test plans exported from QTEST. The tool needs to identify which test cases are affected when STTM mappings are added, deleted, or modified, and generate new test steps for added conditions.
+
+**Input Files:**
+1. **STTM Difference JSON Report** (`STTM_DIFF.json`) containing:
+   - Changed tabs with details of added/deleted/modified mappings
+   - Unchanged tabs for reference
+   - Specific field-level changes including source fields, target fields, canonical names, sample data changes
+   - Change types: "mixed", "modifications_only", "additions_only", "deletions_only"
+
+2. **QTEST Export Excel File** (`QTEST_STTM.xlsx`) containing:
+   - Test cases with columns: **Name, Id, Description, Precondition, Test Step #, Test Step Description, Test Step Expected Result**
+   - References to STTM tab names and field names within test descriptions and steps
+   - Currently contains ~34 test cases with **actual test case IDs from the QTEST system** (format will be discovered by parsing the "Id" column)
+
+**Requirements:**
+
+### **Core Functionality:**
+1. **Parse both input files** and create structured data representations
+2. **Extract actual test case IDs** from the QTEST "Id" column (whatever format they use)
+3. **Identify test case dependencies** by finding references to:
+   - STTM tab names (exact or partial matches)
+   - Source/target field names mentioned in STTM changes
+   - Source/target system names
+   - Canonical names from mappings
+
+### **Impact Analysis Categories:**
+1. **HIGH IMPACT - Test Cases Requiring Updates:**
+   - Tests referencing tabs with **deleted mappings** (need test case deletion or modification)
+   - Tests referencing specific **fields that were modified** (need test step updates)
+   - Tests referencing **sample data that changed** (need test data updates)
+
+2. **MEDIUM IMPACT - Test Cases Needing Review:**
+   - Tests referencing tabs with **modified mappings** (may need validation updates)
+   - Tests referencing **source/target systems** where mappings changed
+
+3. **LOW IMPACT - Test Cases Needing New Coverage:**
+   - Tests that should be created for **newly added mappings**
+   - Tests that need expansion to cover modified mapping scenarios
+
+### **Output Requirements:**
+Generate a comprehensive impact analysis report containing:
+
+1. **Executive Summary:**
+   - Total test cases analyzed
+   - Number of impacted test cases by impact level
+   - Summary of recommended actions
+
+2. **Detailed Impact Analysis:**
+   - **For each impacted test case:**
+     - **Actual Test Case ID** (extracted from QTEST "Id" column)
+     - Test Case Name
+     - Impact level (High/Medium/Low)
+     - **Specific Test Step Numbers** affected (extracted from "Test Step #" column)
+     - Specific STTM changes causing the impact
+     - Recommended action (Update/Delete/Review/Create New)
+   
+   - **For each STTM change:**
+     - Tab name and change type
+     - List of affected test cases with their **actual Test Case IDs**
+     - Recommended test coverage actions
+
+3. **Action Items with Detailed Test Case Information:**
+   - **Test Cases to Update:** 
+     - Actual Test Case ID, Name, affected Test Step #s, specific changes needed
+   - **Test Cases to Delete:** 
+     - Actual Test Case ID, Name, Test Step #s, justification
+   - **Test Cases to Review:** 
+     - Actual Test Case ID, Name, Test Step #s requiring manual review
+
+4. **New Test Steps to Create:**
+   For each added mapping in STTM, generate new test steps with **ALL required columns**:
+   - **Name:** [Derived from mapping purpose]
+   - **Id:** [Generate new ID based on discovered format pattern + suffix like -NEW or -ADD]
+   - **Description:** [Based on the mapping functionality]
+   - **Precondition:** [System/data prerequisites]
+   - **Test Step #:** [Sequential numbering: 1, 2, 3...]
+   - **Test Step Description:** [Detailed steps to validate the new mapping]
+   - **Test Step Expected Result:** [Expected outcomes for each step]
+
+5. **Gap Analysis:**
+   - STTM tabs with changes but no corresponding test coverage (with specific tab names)
+   - Recommendations for new test case creation
+
+### **Technical Specifications:**
+- **Auto-discover Test Case ID format** by parsing the QTEST "Id" column
+- Use fuzzy matching to identify tab name references
+- Support case-insensitive field name matching
+- Handle multiple QTEST sheets if present
+- **Preserve exact Test Case ID format** from QTEST export
+- **Maintain Test Step # sequence** and identify specific step numbers affected
+- Generate output in both JSON format and human-readable HTML/Markdown format
+- Include confidence scores for impact assessments
+- Provide detailed logging of the matching process
+
+### **Specific Output Format Requirements:**
+
+#### **For Impact Analysis (using actual data):**
+```
+Test Case: [ACTUAL_ID_FROM_QTEST] - "[ACTUAL_NAME_FROM_QTEST]"
+Impact Level: HIGH
+Affected Test Steps: [ACTUAL_STEP_NUMBERS_FROM_QTEST]
+STTM Changes: 
+- [ACTUAL_TAB_NAME]: [SPECIFIC_CHANGE_DESCRIPTION]
+Action: [SPECIFIC_RECOMMENDED_ACTION]
+```
+
+#### **For New Test Steps (Added Mappings):**
+```
+Name: [GENERATED_BASED_ON_MAPPING]
+Id: [GENERATED_BASED_ON_DISCOVERED_FORMAT]
+Description: [GENERATED_BASED_ON_MAPPING_FUNCTIONALITY]
+Precondition: [GENERATED_PREREQUISITES]
+Test Step #: 1
+Test Step Description: [DETAILED_STEP_1]
+Test Step Expected Result: [EXPECTED_RESULT_1]
+
+Test Step #: 2
+Test Step Description: [DETAILED_STEP_2]  
+Test Step Expected Result: [EXPECTED_RESULT_2]
+[Continue for all necessary steps...]
+```
+
+### **Key STTM Changes to Analyze (Based on Provided Data):**
+1. **"Vendor Inbound DACH VenProxy" tab:**
+   - 1 mapping deleted: "Party-Dealer Associate" -> "New_source_field" to "newtargetfield"
+   - 2 mappings modified: VIN field sample data change, DealerCodeID field change
+
+2. **"NetSuiteVendorRequestResponsOTV" tab:**
+   - 3 mappings modified: SourceSystem comments, ConsumerLastName/ConsumerFirstName to VendorName, RequestId correlation
+
+3. **"VendorInboundVendorProxytoD365" tab:**
+   - 1 mapping added: PostCode -> ZipCode mapping (NEW TEST STEPS NEEDED)
+   - 1 mapping modified: OnHoldStatus source description change
+
+### **Expected Behavior:**
+The code should automatically discover the actual test case ID format from the QTEST export (whether it's TC-XXXXX, TEST-XXXXX, or any other format) and use that format consistently throughout the impact analysis report.
+
+**Please generate design and development plan assuming that Python code will be used to implement  this comprehensive STTM-to-TestPlan impact analysis tool, ensuring it auto-discovers and uses the actual test case ID format from the QTEST export file. Do not generate code now- just the design and development plan**
